@@ -1,0 +1,11 @@
+node_modules
+dist
+.output
+.vinxi
+.turbo
+*.local
+.env
+.env.*
+!.env.example
+bun.lock
+package-lock.json
