@@ -1,8 +1,10 @@
 import { For, createSignal } from "solid-js";
 import { useI18n, SUPPORTED_LOCALES, type Locale } from "~/context/i18n";
+import { usePostComposer } from "~/context/post-composer";
 
 export default function Navbar() {
   const { locale, setLocale, t, bilingual, toggleBilingual } = useI18n();
+  const { openComposer } = usePostComposer();
   const [open, setOpen] = createSignal(false);
 
   return (
@@ -58,7 +60,7 @@ export default function Navbar() {
         </div>
 
         {/* Post CTA */}
-        <button type="button" class="btn-primary">
+        <button type="button" class="btn-primary" onClick={openComposer}>
           + {t("common", "post")}
         </button>
       </div>

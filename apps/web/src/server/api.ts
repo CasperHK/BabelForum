@@ -21,6 +21,78 @@ type StoredPost = Post & {
 
 const mockPosts: StoredPost[] = [
   {
+    id: "9",
+    content: "Bangkok's late-night coffee shops have become a real bridge between startup culture and local street life.",
+    origin_lang: "en",
+    semantic_tag_ids: ["coffee", "tech", "travel"],
+    geo_scope: { country: "TH", region: "Bangkok" },
+    created_at: "2026-03-09T12:10:00Z",
+    translated: {
+      "zh-TW": "曼谷的深夜咖啡館，正在成為新創文化與在地街頭生活之間的橋梁。",
+      ja: "バンコクの深夜営業のカフェは、スタートアップ文化と地元の街の暮らしをつなぐ場になっています。",
+    },
+  },
+  {
+    id: "8",
+    content: "シンガポールでは多言語コミュニティ向けのAIイベントが毎月のように増えている。",
+    origin_lang: "ja",
+    semantic_tag_ids: ["tech", "culture", "travel"],
+    geo_scope: { country: "SG", region: "Singapore" },
+    created_at: "2026-03-08T18:45:00Z",
+    translated: {
+      en: "In Singapore, AI events for multilingual communities seem to be increasing every month.",
+      "zh-TW": "在新加坡，面向多語社群的 AI 活動幾乎每個月都在增加。",
+    },
+  },
+  {
+    id: "7",
+    content: "台北的獨立書店最近開始和咖啡館合作舉辦跨語言讀書會。",
+    origin_lang: "zh-TW",
+    semantic_tag_ids: ["coffee", "culture"],
+    geo_scope: { country: "TW", region: "Taipei" },
+    created_at: "2026-03-07T07:20:00Z",
+    translated: {
+      en: "Independent bookstores in Taipei have started partnering with cafes to host cross-language reading groups.",
+      ja: "台北の独立系書店では、カフェと協力して多言語読書会を開く動きが広がっています。",
+    },
+  },
+  {
+    id: "6",
+    content: "Oaxaca's markets are the best place to understand how food and local identity stay connected.",
+    origin_lang: "en",
+    semantic_tag_ids: ["food", "culture", "travel"],
+    geo_scope: { country: "MX", region: "Oaxaca" },
+    created_at: "2026-03-06T11:05:00Z",
+    translated: {
+      "zh-TW": "瓦哈卡的市場最能看出，美食與地方認同是如何緊密連結的。",
+      ja: "オアハカの市場は、食と地域のアイデンティティがどう結びついているかを理解するのに最適です。",
+    },
+  },
+  {
+    id: "5",
+    content: "ソウルのカフェはリモートワークの拠点というだけでなく、新しいコミュニティを作る場所でもある。",
+    origin_lang: "ja",
+    semantic_tag_ids: ["coffee", "tech", "culture"],
+    geo_scope: { country: "KR", region: "Seoul" },
+    created_at: "2026-03-05T16:30:00Z",
+    translated: {
+      en: "Cafes in Seoul are not just remote-work hubs, but places where new communities form.",
+      "zh-TW": "首爾的咖啡館不只是遠端工作的據點，也是在建立新社群的地方。",
+    },
+  },
+  {
+    id: "4",
+    content: "京都的小型旅館越來越重視用雙語內容介紹在地餐飲文化。",
+    origin_lang: "zh-TW",
+    semantic_tag_ids: ["food", "travel", "culture"],
+    geo_scope: { country: "JP", region: "Kyoto" },
+    created_at: "2026-03-04T13:15:00Z",
+    translated: {
+      en: "Small inns in Kyoto are increasingly using bilingual content to introduce local food culture.",
+      ja: "京都の小規模な宿では、地域の食文化を紹介するためにバイリンガルな案内が増えています。",
+    },
+  },
+  {
     id: "1",
     content: "台灣的咖啡文化正在蓬勃發展，每個角落都有精品咖啡館。",
     origin_lang: "zh-TW",
@@ -102,7 +174,9 @@ export const api = new Elysia({ prefix: "/api" })
         );
       }
 
-      return results;
+      return results.sort((left, right) =>
+        right.created_at.localeCompare(left.created_at),
+      );
     },
     {
       query: t.Object({
