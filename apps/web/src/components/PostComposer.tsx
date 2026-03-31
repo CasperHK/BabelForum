@@ -6,7 +6,6 @@ import {
   createSignal,
 } from "solid-js";
 import type { Tag } from "@babel-forum/shared";
-import { isServer } from "solid-js/web";
 import {
   SUPPORTED_LOCALES,
   type Locale,
@@ -49,12 +48,15 @@ export default function PostComposer() {
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const [submitting, setSubmitting] = createSignal(false);
 
-  const [tags] = createResource(() => composerOpen() && !isServer, async (open) => {
+  const [tags] = createResource(
+    () => (typeof window === "undefined" ? false : composerOpen()),
+    async (open) => {
     if (!open) return [] as Tag[];
     const response = await fetch("/api/tags");
     if (!response.ok) throw new Error("Failed to load tags.");
     return (await response.json()) as Tag[];
-  });
+    },
+  );
 
   createEffect(() => {
     if (!composerOpen()) return;
