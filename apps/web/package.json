@@ -1,0 +1,25 @@
+{
+  "name": "@babel-forum/web",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vinxi dev",
+    "build": "vinxi build",
+    "start": "vinxi start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@babel-forum/shared": "*",
+    "@elysiajs/cors": "^1.2.2",
+    "@elysiajs/eden": "^1.2.4",
+    "@solidjs/meta": "^0.29.4",
+    "@solidjs/router": "^0.15.3",
+    "@solidjs/start": "^1.1.0",
+    "elysia": "^1.2.25",
+    "solid-js": "^1.9.5",
+    "vinxi": "^0.5.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

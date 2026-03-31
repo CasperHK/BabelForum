@@ -1,0 +1,12 @@
+{
+  "name": "@babel-forum/shared",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "arktype": "^2.1.20"
+  }
+}
