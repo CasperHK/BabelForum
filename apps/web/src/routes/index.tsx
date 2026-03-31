@@ -1,4 +1,5 @@
 import {
+  createMemo,
   createResource,
   createSignal,
   For,
@@ -17,6 +18,13 @@ type SinglePost = Post & {
   id: string;
   created_at: string;
   translated?: Record<string, string>;
+};
+
+type TopicSummary = {
+  tag: Tag;
+  postCount: number;
+  latestPost: SinglePost;
+  latestCreatedAt: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -164,9 +172,9 @@ function FilterSidebar() {
 // Home page — wires everything together
 // ---------------------------------------------------------------------------
 export default function Home() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { postsVersion } = usePostComposer();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Normalize search params: SolidStart returns string | string[] | undefined;
   // the API query schema expects string | undefined only.
@@ -203,18 +211,102 @@ export default function Home() {
     },
   );
 
+  const [allPosts, { refetch: refetchAllPosts }] = createResource(
+    () =>
+      typeof window === "undefined"
+        ? null
+        : {
+            refreshKey: postsVersion(),
+          },
+    async (state) => {
+      if (!state) return [];
+
+      const response = await fetch("/api/posts");
+      if (!response.ok) throw new Error("Failed to load topic summaries.");
+      return (await response.json()) as SinglePost[];
+    },
+  );
+
   const [tags, { refetch: refetchTags }] = createResource(
     () => (typeof window === "undefined" ? null : true),
     async (enabled) => {
       if (!enabled) return [];
-    const response = await fetch("/api/tags");
-    if (!response.ok) throw new Error("Failed to load tags.");
-    return (await response.json()) as Tag[];
+      const response = await fetch("/api/tags");
+      if (!response.ok) throw new Error("Failed to load tags.");
+      return (await response.json()) as Tag[];
     },
   );
 
+  const resolveTagLabel = (tag: Tag) => tag.labels[locale()] ?? tag.labels.en ?? tag.tag_id;
+
+  const formatDate = (value: string) =>
+    new Intl.DateTimeFormat(locale(), {
+      month: "short",
+      day: "numeric",
+    }).format(new Date(value));
+
+  const selectTopic = (topicId: string) => {
+    setSearchParams({
+      ...searchParams,
+      topic: topicId || undefined,
+    });
+  };
+
+  const topicSummaries = createMemo<TopicSummary[]>(() => {
+    const tagList = tags() ?? [];
+    const tagIndex = new Map(tagList.map((tag) => [tag.tag_id, tag]));
+    const summaries = new Map<string, TopicSummary>();
+
+    for (const post of allPosts() ?? []) {
+      for (const tagId of post.semantic_tag_ids) {
+        const tag = tagIndex.get(tagId);
+        if (!tag) continue;
+
+        const existing = summaries.get(tagId);
+        if (!existing) {
+          summaries.set(tagId, {
+            tag,
+            postCount: 1,
+            latestPost: post,
+            latestCreatedAt: post.created_at,
+          });
+          continue;
+        }
+
+        existing.postCount += 1;
+        if (post.created_at > existing.latestCreatedAt) {
+          existing.latestCreatedAt = post.created_at;
+          existing.latestPost = post;
+        }
+      }
+    }
+
+    return [...summaries.values()];
+  });
+
+  const hotTopic = createMemo(() =>
+    [...topicSummaries()].sort((left, right) => {
+      if (right.postCount !== left.postCount) {
+        return right.postCount - left.postCount;
+      }
+      return right.latestCreatedAt.localeCompare(left.latestCreatedAt);
+    })[0],
+  );
+
+  const latestTopics = createMemo(() => {
+    const featuredTagId = hotTopic()?.tag.tag_id;
+
+    return [...topicSummaries()]
+      .filter((topic) => topic.tag.tag_id !== featuredTagId)
+      .sort((left, right) =>
+        right.latestCreatedAt.localeCompare(left.latestCreatedAt),
+      )
+      .slice(0, 6);
+  });
+
   onMount(() => {
     void refetchPosts();
+    void refetchAllPosts();
     void refetchTags();
   });
 
@@ -223,16 +315,89 @@ export default function Home() {
       <FilterSidebar />
 
       <main class="posts-feed">
-        <h1 class="feed-title">{t("common", "search")}</h1>
+        <section class="pulse-panel">
+          <div class="pulse-header">
+            <div>
+              <p class="pulse-kicker">Global Pulse</p>
+              <h1 class="feed-title">Hot topic and latest topics</h1>
+            </div>
+            <p class="pulse-summary">
+              Live from {topicSummaries().length} active topics across the current demo feed.
+            </p>
+          </div>
 
-        <Show
-          when={(posts() ?? []).length > 0}
-          fallback={<p class="empty">No posts found.</p>}
-        >
-          <For each={posts() ?? []}>
-            {(post) => <PostCard post={post} tags={tags() ?? []} />}
-          </For>
-        </Show>
+          <Show when={hotTopic()}>
+            {(topic) => (
+              <button
+                type="button"
+                class="hot-topic-card"
+                onClick={() => selectTopic(topic().tag.tag_id)}
+              >
+                <div class="topic-card-head">
+                  <span class="topic-chip topic-chip-hot">Hot Topic</span>
+                  <span class="topic-timestamp">Updated {formatDate(topic().latestCreatedAt)}</span>
+                </div>
+                <h2 class="hot-topic-title">{resolveTagLabel(topic().tag)}</h2>
+                <p class="hot-topic-copy">{topic().latestPost.content}</p>
+                <div class="topic-card-meta">
+                  <span>{topic().postCount} posts</span>
+                  <span>
+                    {topic().latestPost.geo_scope.country}
+                    {topic().latestPost.geo_scope.region
+                      ? ` · ${topic().latestPost.geo_scope.region}`
+                      : ""}
+                  </span>
+                </div>
+              </button>
+            )}
+          </Show>
+
+          <div class="topic-grid">
+            <For each={latestTopics()}>
+              {(topic) => (
+                <button
+                  type="button"
+                  class="topic-card"
+                  onClick={() => selectTopic(topic.tag.tag_id)}
+                >
+                  <div class="topic-card-head">
+                    <span class="topic-chip">Latest Topic</span>
+                    <span class="topic-timestamp">{formatDate(topic.latestCreatedAt)}</span>
+                  </div>
+                  <h3 class="topic-card-title">{resolveTagLabel(topic.tag)}</h3>
+                  <p class="topic-card-copy">{topic.latestPost.content}</p>
+                  <div class="topic-card-meta">
+                    <span>{topic.postCount} posts</span>
+                    <span>
+                      {topic.latestPost.geo_scope.country}
+                      {topic.latestPost.geo_scope.region
+                        ? ` · ${topic.latestPost.geo_scope.region}`
+                        : ""}
+                    </span>
+                  </div>
+                </button>
+              )}
+            </For>
+          </div>
+        </section>
+
+        <section class="feed-section">
+          <div class="feed-section-header">
+            <h2 class="feed-section-title">Latest voices</h2>
+            <p class="feed-section-copy">
+              Filtered by topic, language, and geography in real time.
+            </p>
+          </div>
+
+          <Show
+            when={(posts() ?? []).length > 0}
+            fallback={<p class="empty">No posts found.</p>}
+          >
+            <For each={posts() ?? []}>
+              {(post) => <PostCard post={post} tags={tags() ?? []} />}
+            </For>
+          </Show>
+        </section>
       </main>
     </div>
   );
