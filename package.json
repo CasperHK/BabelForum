@@ -2,10 +2,7 @@
   "name": "babel-forum",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
